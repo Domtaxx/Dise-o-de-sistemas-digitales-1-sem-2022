@@ -9,18 +9,107 @@ s_west: .byte 0 /* 0 = rojo, 1 = verde,  2 = amarillo */
 s_ped: .byte 0 /* 0= rojo, 1= verde */
 /* Entradas  booleanas*/
 b_norte: .byte 0
-b_sur: .byte 0
+b_sur: .byte 1
 b_este: .byte 0
 b_oeste: .byte 0
-b_ped_walk: .byte 0
+b_ped_walk: .byte 1
 
 .section .text
 .global _start
 _start:
-    bl _counting
-    /*ldr r8, =s_north
-    bl _turn_green_r0*/
+    mov r0, #1
+    ldr r9, =count
+    ldr r9, [r1]
+    /* if placa norte */
+    ldr r1, =b_sur
+    ldr r2, [r1]
+    ldr r8, =s_south
+    cmp r0,r2
+    bleq _sem_cycle_r8
+
+    /* if placa este */
+    ldr r1, =b_este
+    ldr r2, [r1]
+    ldr r8, =s_east
+    cmp r0,r2
+    bleq _sem_cycle_r8
+
+    /* if placa norte */
+    ldr r1, =b_norte
+    ldr r2, [r1]
+    ldr r8, =s_north
+    cmp r0,r2
+    bleq _sem_cycle_r8
+
+    /* if placa este */
+    ldr r1, =b_oeste
+    ldr r2, [r1]
+    ldr r8, =s_west
+    cmp r0,r2
+    bleq _sem_cycle_r8
+
+    /* if placa este */
+    ldr r1, =b_ped_walk
+    ldr r2, [r1]
+    ldr r8, =s_ped
+    cmp r0,r2
+    bleq _ped_cycle_r8
     bl _exit
+
+
+_sem_cycle_r8:
+    push {r4-r11, lr}
+    mov fp, sp
+    ldr r9, =count
+    /* tiempo luz verde */
+    bl _turn_green_r8
+    mov r1,#0
+    mov r10,#8
+    bl _count_until_r10
+    str r1,[r9] /*resets counter */
+
+    /*tiempo luz amarilla */
+    bl _turn_yellow_r8
+    mov r10,#3
+    bl _count_until_r10
+    str r1,[r9] /*resets counter */
+    bl _turn_red_r8
+
+    SWI 0
+    mov sp, fp
+    pop {r4-r11, pc} 
+
+
+_ped_cycle_r8:
+    push {r4-r11, lr}
+    mov fp, sp 
+    ldr r9, =count
+    /* tiempo luz verde */
+    bl _turn_green_r8
+    mov r7,#0
+    mov r10,#8
+    bl _count_until_r10
+    str r7,[r9] /*resets counter */
+    bl _turn_red_r8
+
+    SWI 0
+    mov sp, fp
+    pop {r4-r11, pc} 
+
+_count_until_r10:
+    push {r8-r11, lr}
+    mov fp, sp 
+    bl _counting
+    ldr r1,=count
+    ldr r2,[r1]
+    cmp r2,r10
+    blt _count_until_r10
+
+    SWI 0
+    mov sp, fp
+    pop {r8-r11, pc} 
+    
+
 
 _exit:
 	MOV  r0, r3
@@ -29,7 +118,7 @@ _exit:
 
 /*Sums 1 to counter data */
 _counting:
-    push {r4-r11, lr}
+    push {r8-r11, lr}
     mov fp, sp 
     ldr r0,=count
     mov r1, #0x01
@@ -38,12 +127,12 @@ _counting:
     str r3, [r0]
     SWI 0
     mov sp, fp
-    pop {r4-r11, pc} 
+    pop {r8-r11, pc} 
 
 
-/* Volver semaforo en registro 0 rojo */
+/* Volver semaforo en registro 8 rojo */
 _turn_red_r8:
-    push {r4-r11, lr}
+    push {r8-r11, lr}
     mov fp, sp 
     
     mov r1, #0x0
@@ -51,11 +140,11 @@ _turn_red_r8:
 
     SWI 0
     mov sp, fp
-    pop {r4-r11, pc} 
+    pop {r8-r11, pc} 
 
-/* Volver semaforo en registro 0 amarillo */
+/* Volver semaforo en registro 8 amarillo */
 _turn_green_r8:
-    push {r4-r11, lr}
+    push {r8-r11, lr}
     mov fp, sp 
     
     mov r1, #0x01
@@ -63,12 +152,12 @@ _turn_green_r8:
 
     SWI 0
     mov sp, fp
-    pop {r4-r11, pc} 
+    pop {r8-r11, pc} 
   
 
-/* Volver semaforo en registro 0 verde */
+/* Volver semaforo en registro 8 verde */
 _turn_yellow_r8:
-    push {r4-r11, lr}
+    push {r8-r11, lr}
     mov fp, sp 
     
     mov r1, #0x02
@@ -76,7 +165,7 @@ _turn_yellow_r8:
 
     SWI 0
     mov sp, fp
-    pop {r4-r11, pc} 
+    pop {r8-r11, pc} 
 
 
 /* 
